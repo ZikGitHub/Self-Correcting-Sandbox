@@ -1,0 +1,14 @@
+workspaces
+workspaces/*
+
+self_healing_agent/__pycache__
+self_healing_agent/__pycache__/*
+
+self_healing_agent/core/__pycache__
+self_healing_agent/core/__pycache__/*
+
+self_healing_agent/services/__pycache__
+self_healing_agent/services/__pycache__/*
+
+
+architecture_prompt.md
