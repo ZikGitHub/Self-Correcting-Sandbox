@@ -32,6 +32,12 @@ class SandboxService:
         full_env = os.environ.copy()
         full_env["VIRTUAL_ENV"] = self.venv_dir
         full_env["PATH"] = self.bin_path + os.pathsep + full_env.get("PATH", "")
+        
+        # Ensure project directory is in PYTHONPATH for modular imports
+        current_pythonpath = full_env.get("PYTHONPATH", "")
+        if self.project_dir not in current_pythonpath:
+            full_env["PYTHONPATH"] = self.project_dir + (os.pathsep + current_pythonpath if current_pythonpath else "")
+            
         if env:
             full_env.update(env)
 
