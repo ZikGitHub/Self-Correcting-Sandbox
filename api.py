@@ -80,7 +80,17 @@ async def test_project(request: SandboxRequest):
     sandbox = SandboxService(request.project_path)
     executor = CodeExecutor(sandbox)
     
-    # Target files to try running
+    # Priority 1: Run pytest if 'tests' directory exists
+    tests_dir = os.path.join(request.project_path, "tests")
+    if os.path.exists(tests_dir) and os.path.isdir(tests_dir):
+        print(f"[*] Found tests directory, running pytest...")
+        try:
+            result = sandbox.execute(["python", "-m", "pytest"])
+            return {"status": "success", "output": result}
+        except Exception as e:
+            return {"status": "error", "message": f"Pytest failed: {str(e)}"}
+
+    # Priority 2: Target files to try running
     targets = ["app.py", "main.py"]
     target_file = None
     
@@ -92,7 +102,7 @@ async def test_project(request: SandboxRequest):
     if not target_file:
         # Recursive search for common entry points
         for root, dirs, files in os.walk(request.project_path):
-            if ".venv" in root or "__pycache__" in root:
+            if ".venv" in root or "__pycache__" in root or ".git" in root:
                 continue
             for t in ["main.py", "app.py"]:
                 if t in files:
@@ -104,20 +114,21 @@ async def test_project(request: SandboxRequest):
         # Look for any .py file (recursive, ignoring hidden/venv)
         py_files = []
         for root, dirs, files in os.walk(request.project_path):
-            if ".venv" in root or "__pycache__" in root:
+            if ".venv" in root or "__pycache__" in root or ".git" in root:
                 continue
             for f in files:
                 if f.endswith(".py") and not f.startswith("__"):
                     py_files.append(os.path.relpath(os.path.join(root, f), request.project_path))
         
         if py_files:
-            # Prefer files not in 'tests' directory
+            # Prefer files not in 'tests' directory (though we handled 'tests' above)
             non_test_files = [f for f in py_files if "test" not in f.lower()]
             target_file = non_test_files[0] if non_test_files else py_files[0]
         else:
             return {"status": "error", "message": "No python files found to run"}
 
     try:
+        print(f"[*] Running entry point: {target_file}")
         result = executor.execute(target_file)
         return {"status": "success", "output": result}
     except Exception as e:
